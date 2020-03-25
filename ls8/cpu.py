@@ -9,11 +9,13 @@ class CPU:
         """Construct a new CPU."""
         # ram = 256 bytes of memory
         self.ram = [0] * 256
+
         # registers = 8 general purpose
         self.reg = [0] * 8
         # program counter for any internal registers
         self.pc = 0
-        self.branchtable = {}
+        # stack pointer
+        self.sp = 7 
 
 
     def load(self):
@@ -43,19 +45,27 @@ class CPU:
 
             # open file: save appropriate data to RAM
             with open(cmd_file) as f:
+
                 # read the content line by line
                 for line in f:
+
                     # remove '#' comments
                     cmd_split = line.split('#')
+
                     # remove spaces
                     cmd = cmd_split[0].strip()
-
+                    
+                    # ignore black lines
                     if cmd == '':
-                        # ignore black lines
                         continue
 
+                    # convert binary string to integer
                     value = int(cmd, 2)
+
+                    # save data to RAM
                     self.ram[address] = value
+
+                    # increment address'
                     address += 1
 
         except FileNotFoundError:
@@ -114,10 +124,12 @@ class CPU:
         """Run the CPU."""
 
         # Pull these out?
-        LDI = 0b10000010
-        PRN = 0b01000111
-        HLT = 0b00000001
-        MUL = 0b10100010
+        LDI  = 0b10000010
+        PRN  = 0b01000111
+        HLT  = 0b00000001
+        MUL  = 0b10100010
+        POP  = 0b01000110
+        PUSH = 0b01000101
 
         running = True
 
@@ -125,6 +137,7 @@ class CPU:
             
             # read memory address that is stored in register PC and store it in the Instruction Register
             IR = self.ram[self.pc]
+            SP = self.sp
 
             # Using ram_read(), read the bytes at PC+1 and PC+2 from RAM into variables operand_a and operand_b in case the instruction needs them.
             # operand_a -> position of r0 (register and index 0) is 0b00000000 ==  to operand_b
@@ -159,6 +172,36 @@ class CPU:
             elif IR == MUL:
                 self.alu('MUL', operand_a,operand_b)
                 self.pc += 3
+
+            elif IR == POP:
+                # register = first argument
+                reg = operand_a
+
+                # grab values we are putting on the register
+                val = self.ram[self.reg[SP]]
+                self.reg[reg] = val
+
+                # increment SP
+                self.reg[SP] += 1
+
+                # increment PC by 2
+                self.pc += 2 
+
+            elif IR == PUSH:
+                # register = first argument
+                reg = operand_a
+
+                # grab values we are putting on the register
+                val = self.reg[reg]
+
+                # decrement SP
+                self.reg[SP] -= 1
+
+                # copy/write value in given register to address pointed by SP 
+                self.ram_write(self.reg[SP], val)
+
+                # increment PC by 2
+                self.pc += 2
 
             else:
                 print(f"Unknown instruction: {IR}")
