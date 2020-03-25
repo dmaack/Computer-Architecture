@@ -13,6 +13,8 @@ class CPU:
         self.reg = [0] * 8
         # program counter for any internal registers
         self.pc = 0
+        self.branchtable = {}
+
 
     def load(self):
         """Load a program into memory."""
@@ -68,6 +70,10 @@ class CPU:
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
+        
+        # multiple two register values
+        elif op == 'MUL':
+            self.reg[reg_a] *= self.reg[reg_b]
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -92,8 +98,8 @@ class CPU:
 
         print()
 
-    # The MAR contains the address that is being read or written to
-    # The MDR contains the data that was read or the data to write
+    # The MAR contains the ADDRESS that is being read or written to
+    # The MDR contains the data (VALUE) that was read or the data to write
     # You don’t need to add the MAR or MDR to your CPU class, 
     # but they would make handy paramter names for ram_read() and ram_write(), 
     # if you wanted.
@@ -106,9 +112,12 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
+
+        # Pull these out?
         LDI = 0b10000010
         PRN = 0b01000111
         HLT = 0b00000001
+        MUL = 0b10100010
 
         running = True
 
@@ -144,6 +153,11 @@ class CPU:
                 val = self.ram[self.pc + 2]
                 self.reg[reg] = val
                 print('val: ', val)
+                self.pc += 3
+
+            # multiply the values using ALU
+            elif IR == MUL:
+                self.alu('MUL', operand_a,operand_b)
                 self.pc += 3
 
             else:
