@@ -12,8 +12,10 @@ class CPU:
 
         # registers = 8 general purpose
         self.reg = [0] * 8
+
         # program counter for any internal registers
         self.pc = 0
+
         # stack pointer
         self.sp = 7 
 
@@ -128,8 +130,11 @@ class CPU:
         PRN  = 0b01000111
         HLT  = 0b00000001
         MUL  = 0b10100010
+        ADD  = 0b10100000
         POP  = 0b01000110
         PUSH = 0b01000101
+        CALL = 0b01010000
+        RET  = 0b00010001
 
         running = True
 
@@ -173,6 +178,10 @@ class CPU:
                 self.alu('MUL', operand_a,operand_b)
                 self.pc += 3
 
+            elif IR == ADD:
+                self.alu('ADD', operand_a, operand_b)
+                self.pc += 3
+
             elif IR == POP:
                 # register = first argument
                 reg = operand_a
@@ -202,6 +211,31 @@ class CPU:
 
                 # increment PC by 2
                 self.pc += 2
+
+            elif IR == CALL:
+                # address of instruction directly after CALL is pushed onto stack
+                val = self.pc + 2
+
+                # pc is set to the address stored in the given register
+                reg_index = operand_a
+
+                sub_address = self.reg[reg_index]
+                self.reg[SP] -= 1
+                self.ram[self.reg[SP]] = val
+
+                # jump to that location in RAM 
+                # execute the first instruction in subroutine
+                self.pc = sub_address
+
+            elif IR == RET:
+                # return for the subroutine
+                return_address = self.reg[SP]
+
+                # pop the value from the top of the stack and store it in the pc
+                self.pc = self.ram_read(return_address)
+
+                # increment the sp by 1
+                self.reg[SP] += 1
 
             else:
                 print(f"Unknown instruction: {IR}")
