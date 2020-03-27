@@ -19,27 +19,12 @@ class CPU:
         # stack pointer
         self.sp = 7 
 
+        # flag
+        self.fl = [0] * 8
+
 
     def load(self):
         """Load a program into memory."""
-
-        # address = 0
-
-        # For now, we've just hardcoded a program:
-
-        # program = [
-        #     # From print8.ls8
-        #     0b10000010, # LDI R0,8
-        #     0b00000000,
-        #     0b00001000,
-        #     0b01000111, # PRN R0
-        #     0b00000000,
-        #     0b00000001, # HLT
-        # ]
-
-        # for instruction in program:
-        #     self.ram[address] = instruction
-        #     address += 1
 
         try:
             address = 0 
@@ -79,13 +64,45 @@ class CPU:
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
+        # self.fl[0] # 0
+        # self.fl[1] # 0
+        # self.fl[2] # 0
+        # self.fl[3] # 0
+        # self.fl[4] # 0
+        self.fl[5] # L
+        self.fl[6] # G
+        self.fl[7] # E
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         
-        # multiple two register values
+        # Multiply the values in two registers together and store the result in registerA
         elif op == 'MUL':
             self.reg[reg_a] *= self.reg[reg_b]
+
+        # Compare the values in two registers.
+        elif op == 'CMP':
+            # If they are equal, 
+            if self.reg[reg_a] == self.reg[reg_b]:
+                # set the Equal [E] flag to 1, otherwise set it to 0
+                self.fl[5] = 0
+                self.fl[6] = 0
+                self.fl[7] = 1 # [E]
+            # If registerA is less than registerB
+            elif self.reg[reg_a] < self.reg[reg_b]:
+                # set the Less-than [L] flag to 1, otherwise set it to 0
+                self.fl[5] = 1 # [L]
+                self.fl[6] = 0
+                self.fl[7] = 0
+            # If registerA is greater than registerB
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                # set the Greater-than G flag to 1, otherwise set it to 0
+                self.fl[5] = 0
+                self.fl[6] = 1 # [G]
+                self.fl[7] = 0
+            else:
+                pass
+
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -135,6 +152,10 @@ class CPU:
         PUSH = 0b01000101
         CALL = 0b01010000
         RET  = 0b00010001
+        CMP  = 0b10100111
+        JMP  = 0b01010100
+        JEQ  = 0b01010101
+        JNE  = 0b01010110
 
         running = True
 
@@ -236,6 +257,36 @@ class CPU:
 
                 # increment the sp by 1
                 self.reg[SP] += 1
+
+            elif IR == CMP:
+                # instruction handled by the ALU
+                self.alu('CMP', operand_a, operand_b)
+                print('Register in CMP', self.reg)
+                print('Flag', self.fl)
+                self.pc += 3
+
+            elif IR == JMP:
+                # Jump to the address stored in the given register
+                print(f'Jump to address stored:  {operand_a}')
+                # Set the PC to the address stored in the given register
+                self.pc = self.reg[operand_a]
+                print('JMP pc adr: ', self.pc)
+            
+            elif IR == JEQ:
+                # If equal [E] flag is set (true), jump to the address stored in the given register.
+                if self.fl[7] == 1: # [E]
+                    self.pc = self.reg[operand_a]
+                else:
+                    self.pc += 2 
+            
+            elif IR == JNE:
+                # If E flag is clear (false, 0), jump to the address stored in the given register.
+                if self.fl[7] == 0:
+                    self.pc = self.reg[operand_a]
+                else:
+                    self.pc += 2
+
+
 
             else:
                 print(f"Unknown instruction: {IR}")
